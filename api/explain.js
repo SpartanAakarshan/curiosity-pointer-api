@@ -1,15 +1,6 @@
+const SUPABASE_URL  = process.env.SUPABASE_URL;
+const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY;
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`;
-
-const ipHits = new Map();
-function isRateLimited(ip) {
-  const now = Date.now();
-  const window = 60_000;
-  const limit = 30;
-  const hits = (ipHits.get(ip) ?? []).filter(t => now - t < window);
-  hits.push(now);
-  ipHits.set(ip, hits);
-  return hits.length > limit;
-}
 
 const SYSTEM_PROMPT = `You are an ADHD-focused productivity assistant designed to close 'curiosity loops' instantly. Your mission is to satisfy the user's sudden urge for information so they don't open a new tab.
 
@@ -25,20 +16,41 @@ Constraint: No bullet points, no bolding, and no links.
 
 Your goal is to satisfy the itch of curiosity and immediately return the user's mental bandwidth to their original task.`;
 
+const ipHits = new Map();
+function isRateLimited(key) {
+  const now = Date.now();
+  const hits = (ipHits.get(key) ?? []).filter(t => now - t < 60_000);
+  hits.push(now);
+  ipHits.set(key, hits);
+  return hits.length > 30;
+}
+
+async function getUser(token) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'apikey': SUPABASE_ANON
+    }
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Extension-Secret');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.headers['x-extension-secret'] !== process.env.EXTENSION_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const token = req.headers['authorization']?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'No token provided' });
 
-  const ip = req.headers['x-forwarded-for']?.split(',')[0] ?? 'unknown';
-  if (isRateLimited(ip)) {
+  const user = await getUser(token);
+  if (!user?.id) return res.status(401).json({ error: 'Invalid or expired session' });
+
+  if (isRateLimited(user.id)) {
     return res.status(429).json({ error: 'Too many requests. Wait a minute.' });
   }
 
@@ -58,14 +70,10 @@ export default async function handler(req, res) {
     });
 
     const data = await r.json();
-
-    if (data.error) {
-      return res.status(502).json({ error: `Gemini error: ${data.error.message}` });
-    }
+    if (data.error) return res.status(502).json({ error: `Gemini error: ${data.error.message}` });
 
     const parts = data.candidates?.[0]?.content?.parts ?? [];
     const result = parts.find(p => !p.thought)?.text?.trim();
-
     if (!result) return res.status(502).json({ error: 'No response from Gemini' });
 
     return res.status(200).json({ result });
