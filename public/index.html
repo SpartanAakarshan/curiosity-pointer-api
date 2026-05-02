@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Curiosity Pointer — ADHD Focus Tool</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <meta name="description" content="Alt+Click any text on any webpage for an instant 2-sentence AI explanation. Built for ADHD brains.">
   <style>
     :root {
@@ -47,10 +48,18 @@
       justify-content: space-between;
     }
     .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 11px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--accent);
+    }
+    .logo img {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
     }
     .nav-links { display: flex; gap: 24px; }
     .nav-links a {
@@ -261,7 +270,7 @@
   <!-- NAV -->
   <nav>
     <div class="container">
-      <span class="logo">Curiosity Pointer</span>
+      <span class="logo"><img src="/icon.svg" alt="">Curiosity Pointer</span>
       <div class="nav-links">
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
