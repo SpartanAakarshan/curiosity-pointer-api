@@ -2,8 +2,18 @@ const KEY_ID     = process.env.RAZORPAY_KEY_ID;
 const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const PLAN_ID    = process.env.RAZORPAY_PLAN_ID;
 
+const ALLOWED_ORIGINS = [
+  'chrome-extension://jjaepcebhbmnnlogncfddnkmfhopmfnf',
+  'https://curiosity-pointer-api.vercel.app'
+];
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin ?? '';
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 

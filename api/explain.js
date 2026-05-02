@@ -79,8 +79,15 @@ async function checkAndIncrementUsage(userId) {
   return { allowed: true, plan: usage.plan, remaining };
 }
 
+const ALLOWED_ORIGIN = 'chrome-extension://jjaepcebhbmnnlogncfddnkmfhopmfnf';
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin ?? '';
+  if (origin !== ALLOWED_ORIGIN) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
