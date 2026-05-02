@@ -76,8 +76,7 @@ async function checkAndIncrementUsage(userId) {
     body: JSON.stringify({ total_requests: usage.total_requests + 1 })
   });
 
-  const remaining = usage.plan === 'free' ? FREE_LIMIT - usage.total_requests - 1 : null;
-  return { allowed: true, plan: usage.plan, remaining };
+  return { allowed: true, plan: usage.plan, remaining: null };
 }
 
 const ALLOWED_ORIGIN = 'chrome-extension://jjaepcebhbmnnlogncfddnkmfhopmfnf';
