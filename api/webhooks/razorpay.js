@@ -1,8 +1,19 @@
 import crypto from 'crypto';
 
+export const config = { api: { bodyParser: false } };
+
 const SUPABASE_URL         = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const WEBHOOK_SECRET       = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
 
 async function getUserByEmail(email) {
   const r = await fetch(
@@ -40,14 +51,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const signature = req.headers['x-razorpay-signature'];
-  const rawBody   = JSON.stringify(req.body);
+  const rawBody   = await getRawBody(req);
   const expected  = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
 
   if (signature !== expected) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  const { event, payload } = req.body;
+  const { event, payload } = JSON.parse(rawBody);
   const subscription = payload?.subscription?.entity;
   const email        = subscription?.notes?.email;
 
