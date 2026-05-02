@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upgrade — Curiosity Pointer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #03030f;
+      color: #b8b8ff;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #4a4aff;
+      padding: 32px;
+      box-shadow: 0 0 16px rgba(80,80,255,0.3), 0 0 40px rgba(50,50,200,0.1);
+    }
+    .title {
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      color: #6666ff;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1e1e6e;
+    }
+    .price {
+      font-size: 28px;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .price span { font-size: 13px; color: #5555cc; }
+    .features {
+      margin: 20px 0;
+      list-style: none;
+      font-size: 12px;
+      color: #8888cc;
+      line-height: 2;
+    }
+    .features li::before { content: '> '; color: #4a4aff; }
+    label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: #5555cc;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      margin-top: 20px;
+    }
+    input {
+      width: 100%;
+      background: #000008;
+      border: 1px solid #2a2a88;
+      color: #b8b8ff;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      padding: 10px;
+      outline: none;
+    }
+    input:focus { border-color: #4a4aff; }
+    button {
+      width: 100%;
+      margin-top: 20px;
+      background: #1a1a6e;
+      border: 1px solid #6666ff;
+      color: #b8b8ff;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 12px;
+      cursor: pointer;
+    }
+    button:hover { background: #2a2a99; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #status {
+      margin-top: 16px;
+      font-size: 11px;
+      min-height: 16px;
+    }
+    .ok  { color: #44aa44; }
+    .err { color: #cc4444; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">Curiosity Pointer // Upgrade</div>
+    <div class="price">₹400 <span>/ month</span></div>
+    <ul class="features">
+      <li>Unlimited searches</li>
+      <li>All websites + bold text</li>
+      <li>Text selection support</li>
+      <li>Cancel anytime</li>
+    </ul>
+
+    <label>Email (used to activate your account)</label>
+    <input type="email" id="email" placeholder="you@example.com" />
+
+    <button id="pay-btn">Subscribe Now</button>
+    <div id="status"></div>
+  </div>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    const btn    = document.getElementById('pay-btn');
+    const status = document.getElementById('status');
+
+    btn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      if (!email || !email.includes('@')) {
+        status.textContent = 'Enter a valid email.';
+        status.className = 'err';
+        return;
+      }
+
+      btn.disabled = true;
+      status.textContent = 'Creating subscription…';
+      status.className = '';
+
+      try {
+        const res  = await fetch('/api/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          status.textContent = data.error;
+          status.className = 'err';
+          btn.disabled = false;
+          return;
+        }
+
+        const rzp = new Razorpay({
+          key: data.key_id,
+          subscription_id: data.subscription_id,
+          name: 'Curiosity Pointer',
+          description: 'Pro Plan — Unlimited Searches',
+          prefill: { email },
+          theme: { color: '#4a4aff' },
+          handler: function() {
+            status.textContent = 'Payment successful! Your account will be upgraded within seconds.';
+            status.className = 'ok';
+            btn.disabled = true;
+          },
+          modal: {
+            ondismiss: function() {
+              btn.disabled = false;
+              status.textContent = '';
+            }
+          }
+        });
+
+        rzp.open();
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+        status.className = 'err';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
