@@ -1,3 +1,6 @@
+import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
+
 const SUPABASE_URL  = process.env.SUPABASE_URL;
 const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY;
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`;
@@ -16,14 +19,16 @@ Constraint: No bullet points, no bolding, and no links.
 
 Your goal is to satisfy the itch of curiosity and immediately return the user's mental bandwidth to their original task.`;
 
-const ipHits = new Map();
-function isRateLimited(key) {
-  const now = Date.now();
-  const hits = (ipHits.get(key) ?? []).filter(t => now - t < 60_000);
-  hits.push(now);
-  ipHits.set(key, hits);
-  return hits.length > 30;
-}
+const redis = new Redis({
+  url:   process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, '1 m'),
+  prefix:  'cp:rl',
+});
 
 async function getUser(token) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -50,7 +55,8 @@ export default async function handler(req, res) {
   const user = await getUser(token);
   if (!user?.id) return res.status(401).json({ error: 'Invalid or expired session' });
 
-  if (isRateLimited(user.id)) {
+  const { success } = await ratelimit.limit(user.id);
+  if (!success) {
     return res.status(429).json({ error: 'Too many requests. Wait a minute.' });
   }
 
