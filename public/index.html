@@ -302,7 +302,7 @@
           <span class="demo-phrase" data-key="goa">Goa</span> became their nerve centre in Asia,
           and <span class="demo-phrase" data-key="celestial-navigation">celestial navigation</span> the skill that made it all possible.
         </div>
-        <div class="demo-hint">// click any underlined phrase to explain it</div>
+        <div class="demo-hint">// alt+click any underlined phrase to explain it</div>
         <div class="demo-tooltip" id="demo-tooltip">
           <div class="demo-tooltip-label">Curiosity Pointer</div>
           <div class="demo-tooltip-text" id="demo-tooltip-text"></div>
@@ -406,6 +406,7 @@
 
     document.querySelectorAll('.demo-phrase').forEach(el => {
       el.addEventListener('click', function(e) {
+        if (!e.altKey) return;
         const key = this.dataset.key;
         if (activePhrase) activePhrase.classList.remove('active');
         this.classList.add('active');
