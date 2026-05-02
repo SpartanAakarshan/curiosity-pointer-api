@@ -64,9 +64,10 @@ async function checkAndIncrementUsage(userId) {
   );
   const [usage] = await r.json();
 
-  if (usage.plan === 'free' && usage.total_requests >= FREE_LIMIT) {
-    return { allowed: false, plan: 'free', total: usage.total_requests };
-  }
+  // Free launch — limit disabled, usage still tracked
+  // if (usage.plan === 'free' && usage.total_requests >= FREE_LIMIT) {
+  //   return { allowed: false, plan: 'free', total: usage.total_requests };
+  // }
 
   // Increment
   await fetch(`${SUPABASE_URL}/rest/v1/users_usage?user_id=eq.${userId}`, {
