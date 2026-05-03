@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/upgrade", "destination": "/upgrade.html" }
+    { "source": "/upgrade", "destination": "/upgrade.html" },
+    { "source": "/privacy", "destination": "/privacy.html" }
   ]
 }
