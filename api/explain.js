@@ -33,50 +33,34 @@ const ratelimit = new Ratelimit({
 const FREE_LIMIT = 15;
 
 async function getUser(token) {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'apikey': SUPABASE_ANON
-    }
-  });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      signal: AbortSignal.timeout(5000),
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON
+      }
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 async function checkAndIncrementUsage(userId) {
-  const headers = {
-    'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
-    'apikey': process.env.SUPABASE_SERVICE_KEY,
-    'Content-Type': 'application/json'
-  };
-
-  // Ensure row exists
-  await fetch(`${SUPABASE_URL}/rest/v1/users_usage`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_usage_if_allowed`, {
     method: 'POST',
-    headers: { ...headers, 'Prefer': 'resolution=ignore-duplicates' },
-    body: JSON.stringify({ user_id: userId })
+    signal: AbortSignal.timeout(5000),
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+      'apikey': process.env.SUPABASE_SERVICE_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ p_user_id: userId, p_free_limit: FREE_LIMIT })
   });
-
-  // Get current usage
-  const r = await fetch(
-    `${SUPABASE_URL}/rest/v1/users_usage?user_id=eq.${userId}&select=total_requests,plan`,
-    { headers }
-  );
-  const [usage] = await r.json();
-
-  if (usage.plan === 'free' && usage.total_requests >= FREE_LIMIT) {
-    return { allowed: false, plan: 'free', total: usage.total_requests };
-  }
-
-  // Increment
-  await fetch(`${SUPABASE_URL}/rest/v1/users_usage?user_id=eq.${userId}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify({ total_requests: usage.total_requests + 1 })
-  });
-
-  const remaining = usage.plan === 'free' ? FREE_LIMIT - (usage.total_requests + 1) : null;
-  return { allowed: true, plan: usage.plan, remaining };
+  if (!res.ok) throw new Error(`Usage check failed: ${res.status}`);
+  return res.json();
 }
 
 const ALLOWED_ORIGIN = 'chrome-extension://jjaepcebhbmnnlogncfddnkmfhopmfnf';
@@ -121,6 +105,7 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(API_URL, {
       method: 'POST',
+      signal: AbortSignal.timeout(8000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: SYSTEM_PROMPT + '\n\nText: ' + text }] }],
