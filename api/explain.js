@@ -64,10 +64,9 @@ async function checkAndIncrementUsage(userId) {
   );
   const [usage] = await r.json();
 
-  // Free launch — limit disabled, usage still tracked
-  // if (usage.plan === 'free' && usage.total_requests >= FREE_LIMIT) {
-  //   return { allowed: false, plan: 'free', total: usage.total_requests };
-  // }
+  if (usage.plan === 'free' && usage.total_requests >= FREE_LIMIT) {
+    return { allowed: false, plan: 'free', total: usage.total_requests };
+  }
 
   // Increment
   await fetch(`${SUPABASE_URL}/rest/v1/users_usage?user_id=eq.${userId}`, {
@@ -76,7 +75,8 @@ async function checkAndIncrementUsage(userId) {
     body: JSON.stringify({ total_requests: usage.total_requests + 1 })
   });
 
-  return { allowed: true, plan: usage.plan, remaining: null };
+  const remaining = usage.plan === 'free' ? FREE_LIMIT - (usage.total_requests + 1) : null;
+  return { allowed: true, plan: usage.plan, remaining };
 }
 
 const ALLOWED_ORIGIN = 'chrome-extension://jjaepcebhbmnnlogncfddnkmfhopmfnf';
