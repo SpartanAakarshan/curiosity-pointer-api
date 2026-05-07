@@ -3,7 +3,7 @@ const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const PLAN_ID    = process.env.RAZORPAY_PLAN_ID;
 
 const ALLOWED_ORIGINS = [
-  'chrome-extension://jjaepcebhbmnnlogncfddnkmfhopmfnf',
+  'chrome-extension://ankgmjlgbebilckcdgbmljahfdakgbgb',
   'https://curiosity-pointer-api.vercel.app'
 ];
 
