@@ -105,11 +105,15 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(API_URL, {
       method: 'POST',
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(15000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: SYSTEM_PROMPT + '\n\nText: ' + text }] }],
-        generationConfig: { maxOutputTokens: 150, temperature: 0.3 }
+        generationConfig: {
+          maxOutputTokens: 150,
+          temperature: 0.3,
+          thinkingConfig: { thinkingBudget: 0 }
+        }
       })
     });
 
