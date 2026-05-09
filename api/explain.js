@@ -63,7 +63,7 @@ async function checkAndIncrementUsage(userId) {
   return res.json();
 }
 
-const ALLOWED_ORIGIN = 'chrome-extension://ankgmjlgbebilckcdgbmljahfdakgbgb';
+const ALLOWED_ORIGIN = 'chrome-extension://bkmkmdopknjhdaakhjpkbboinaghhdki';
 
 export default async function handler(req, res) {
   const origin = req.headers.origin ?? '';
